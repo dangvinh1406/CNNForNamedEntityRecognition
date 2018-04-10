@@ -29,14 +29,30 @@ NE_LABEL = {
 
 OMITED_DATA = ["\n", "-DOCSTART- -X- O O\n"]
 
-def convert_data(rawDataFile, outputFolder, batchSize, w2vEx, hcEx):
+def convert_data(rawDataFile, outputFolder, w2vEx, hcEx, batchSize=None):
     inputFile = open(rawDataFile, "r")
     lines = inputFile.readlines()
+    if batchSize is None:
+        batchSize = len(lines)
     w2vFeatures = []
     hcFeatures = []
     labels = []
     batch = 0
     for i in range(len(lines)):
+        if (len(labels) and len(labels)%batchSize == 0) or i == len(lines)-1:
+            batchData = {
+                "w2v": numpy.array(w2vFeatures),
+                "hc": numpy.array(hcFeatures),
+                "labels": labels
+            }
+            with open(os.path.join(outputFolder, str(batch))+BATCH_FORMAT, "wb") as output:
+                pickle.dump(batchData, output, pickle.HIGHEST_PROTOCOL)
+            print("\rSaved batch "+str(batch), end="")
+            w2vFeatures = []
+            hcFeatures = []
+            labels = []
+            batch += 1
+
         if lines[i] in OMITED_DATA:
             continue
         wordData = lines[i][:-1].split(" ") # cut out '\n'
@@ -48,20 +64,8 @@ def convert_data(rawDataFile, outputFolder, batchSize, w2vEx, hcEx):
         hcFeatures.append(hcEx.extract(word, posWordData[0]=="", preWordData[0]==""))
 
         labels.append(NE_LABEL[re.sub(r".*-", "", wordData[DATA_FORMAT["net"]])])
-
-        if len(labels)%batchSize == 0 or i == len(lines)-1:
-            batchData = {
-                "w2v": numpy.concatenate(w2vFeatures).reshape((batchSize, len(w2vFeatures[0]))),
-                "hc": numpy.concatenate(hcFeatures).reshape((batchSize, len(hcFeatures[0]))),
-                "labels": labels
-            }
-            with open(os.path.join(outputFolder, str(batch))+BATCH_FORMAT, "wb") as output:
-                pickle.dump(batchData, output, pickle.HIGHEST_PROTOCOL)
-            print("\rSaved batch "+str(batch), end="")
-            w2vFeatures = []
-            hcFeatures = []
-            labels = []
-            batch += 1
+        
+    print("\n")
 
 def load_batch(dataFile):
     inFile = open(dataFile, "rb")
@@ -69,9 +73,32 @@ def load_batch(dataFile):
     inFile.close()
     return [batchData["w2v"], batchData["hc"]], batchData["labels"]
 
+def train(model, folderTrain, modelName, weightName):
+    batch_data_files = glob.glob(folderTrain+"/*"+BATCH_FORMAT)
+    for batch_file in batch_data_files:
+        X, Y = load_batch(batch_file)
+        Y = CNNModel.convert_labels(Y, numClass=5)
+        model.train(X, Y)
+    model.save(modelName, weightName)
+
+def test(model, folderTest, modelName, weightName):
+    model.load("model.json", "w01.h5")
+    batch_data_files = glob.glob(folderTest+"/*"+BATCH_FORMAT)
+    for batch_file in batch_data_files:
+        X, Y = load_batch(batch_file)
+        Y = CNNModel.convert_labels(Y, numClass=5)
+        print(model.test(X, Y))
+
+
 if __name__ == '__main__':
-    rawDataFile = "dat/eng.train"
-    outputFolder = "dat/batch_data"
+    option = "test"
+    batch_size = 100
+
+    #rawDataFile = "dat/eng.train"
+    #outputFolder = "dat/batch_train"
+
+    rawDataFile = "dat/eng.testa"
+    outputFolder = "dat/batch_testa"
 
     w2vEx = W2VExtractor()
     w2vEx.load("dat/vectors.bin")
@@ -79,6 +106,10 @@ if __name__ == '__main__':
 
     model = CNNModel()
 
-    #convert_data(rawDataFile, outputFolder, 100, w2vEx, hcEx)
-    X, Y = load_batch("dat/batch_data/0.batch")
-    print(X[0].shape, X[1].shape, len(Y))
+    if option == "train":
+        convert_data(rawDataFile, outputFolder, w2vEx, hcEx, batchSize)
+        train(model, outputFolder, "model.json", "w01.h5")
+    elif option == "test":
+        convert_data(rawDataFile, outputFolder, w2vEx, hcEx)
+        test(model, outputFolder, "model.json", "w01.h5")
+        

@@ -37,7 +37,7 @@ class W2VExtractor:
             wordVector = self.__model[word.lower()]
         except:
             wordVector = numpy.zeros((self.__vectorSize,))
-        return wordVector
+        return wordVector.reshape((1, self.__vectorSize))
 
 class HandcraftExtractor:
     PUNCT = set(string.punctuation)
@@ -51,7 +51,7 @@ class HandcraftExtractor:
             int(unicode(word, 'utf-8').isnumeric()),
             int(isFirst),
             int(isLast)
-        ])
+        ]).reshape((1, 7))
 
 
 
