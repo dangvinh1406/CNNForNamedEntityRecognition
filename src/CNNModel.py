@@ -1,5 +1,8 @@
 from __future__ import print_function
 
+import numpy
+
+from sklearn.metrics import confusion_matrix
 from keras import regularizers, layers, models, metrics
 from keras.models import model_from_json
 from keras import utils
@@ -15,16 +18,13 @@ class CNNModel:
             activation="relu",
             padding="same",
             kernel_regularizer=regularizers.l2(LAMBDA))(w2vInput)
-        #w2v2 = layers.MaxPooling1D(pool_size=3)(w2v1)
         w2v2 = layers.Dropout(P_DROPOUT)(w2v1)
-        #w2v3 = layers.Dense(100)(w2v2)
         
         hcInput = layers.Input(shape=(None, vectorSizes[1]))
         hc1 = layers.Conv1D(
-            numFilter, vectorSizes[1], 
-            activation="relu",
-            padding="same")(hcInput)
-        #hc2 = layers.Dense(1)(hc1)
+            numFilter, vectorSizes[1],
+            padding="same", 
+            activation="relu")(hcInput)
 
         conc = layers.concatenate([w2v2, hc1])
         dens = layers.Dense(numClass, activation="softmax")(conc)
@@ -37,8 +37,18 @@ class CNNModel:
     def train(self, X, Y):
         self.__model.train_on_batch(X, Y, sample_weight=None, class_weight=None)
 
-    def test(self, X, Y):
-        return dict(zip(self.__model.evaluate(X, Y), self.__model.metrics_names))
+    def test_auto(self, X, Y):
+        return dict(zip(self.__model.metrics_names, self.__model.evaluate(X, Y)))
+
+    def test(self, X, Y_raw):
+        y = self.predict(X)
+        y_raw = numpy.array([numpy.argmax(v) for v in y])
+        confusionMat = confusion_matrix(Y_raw, y_raw)
+        return confusionMat
+
+
+    def predict(self, X):
+        return self.__model.predict(X)
 
     def save(self, modelName="model.json", weightName="weight.h5"):
         modelJson = self.__model.to_json()
