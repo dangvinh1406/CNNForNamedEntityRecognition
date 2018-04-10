@@ -7,18 +7,13 @@ from keras import regularizers, layers, models, metrics
 from keras.models import model_from_json
 from keras import utils
 
-P_DROPOUT = 0.5
-LAMBDA = 3
-
 class CNNModel:
-    def __init__(self, vectorSizes=(200, 7), numClass=5, kernelSize=5, numFilter=8):
+    def __init__(self, vectorSizes=(200, 7), numClass=5, kernelSize=5, numFilter=16):
         w2vInput = layers.Input(shape=(None, vectorSizes[0]))
         w2v1 = layers.Conv1D(
             numFilter, kernelSize, 
             activation="relu",
-            padding="same",
-            kernel_regularizer=regularizers.l2(LAMBDA))(w2vInput)
-        w2v2 = layers.Dropout(P_DROPOUT)(w2v1)
+            padding="same")(w2vInput)
         
         hcInput = layers.Input(shape=(None, vectorSizes[1]))
         hc1 = layers.Conv1D(
@@ -26,16 +21,17 @@ class CNNModel:
             padding="same", 
             activation="relu")(hcInput)
 
-        conc = layers.concatenate([w2v2, hc1])
-        dens = layers.Dense(numClass, activation="softmax")(conc)
-        self.__model = models.Model(inputs=[w2vInput, hcInput], outputs=dens)
+        conc = layers.concatenate([w2v1, hc1])
+        dens1 = layers.Dense(vectorSizes[0]/2, activation="relu")(conc)
+        dens2 = layers.Dense(numClass, activation="softmax")(dens1)
+        self.__model = models.Model(inputs=[w2vInput, hcInput], outputs=dens2)
         self.__model.compile(
             loss='categorical_crossentropy',
             optimizer='adadelta',
             metrics=['accuracy', metrics.categorical_accuracy])
 
     def train(self, X, Y):
-        self.__model.train_on_batch(X, Y, sample_weight=None, class_weight=None)
+        self.__model.train_on_batch(X, Y)
 
     def test_auto(self, X, Y):
         return dict(zip(self.__model.metrics_names, self.__model.evaluate(X, Y)))

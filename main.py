@@ -25,11 +25,11 @@ DATA_FORMAT = {
 }
 
 NE_LABEL = {
-    "O": 0,
-    "ORG": 1,
-    "PER": 2,
-    "LOC": 3,
-    "MISC": 4
+    "O": 0, # 83.25%
+    "ORG": 1, # 4.07%
+    "PER": 2, # 6.13%
+    "LOC": 3, # 4.08%
+    "MISC": 4 # 2.47%
 }
 
 OMITED_DATA = ["\n", "-DOCSTART- -X- O O\n"]
