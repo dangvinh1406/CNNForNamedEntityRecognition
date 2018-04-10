@@ -8,7 +8,7 @@ from keras.models import model_from_json
 from keras import utils
 
 class CNNModel:
-    def __init__(self, vectorSizes=(200, 7), numClass=5, kernelSize=5, numFilter=16):
+    def __init__(self, vectorSizes=(200, 7), numClass=5, kernelSize=5, numFilter=32):
         w2vInput = layers.Input(shape=(None, vectorSizes[0]))
         w2v1 = layers.Conv1D(
             numFilter, kernelSize, 
@@ -28,7 +28,7 @@ class CNNModel:
         self.__model.compile(
             loss='categorical_crossentropy',
             optimizer='adadelta',
-            metrics=['accuracy', metrics.categorical_accuracy])
+            metrics=['accuracy'])
 
     def train(self, X, Y):
         self.__model.train_on_batch(X, Y)
@@ -41,7 +41,6 @@ class CNNModel:
         y_raw = numpy.array([numpy.argmax(v) for v in y])
         confusionMat = confusion_matrix(Y_raw, y_raw)
         return confusionMat
-
 
     def predict(self, X):
         return self.__model.predict(X)
@@ -58,7 +57,7 @@ class CNNModel:
         jsonFile.close()
         self.__model = model_from_json(modelJson)
         self.__model.compile(
-            loss='mean_squared_error',
+            loss='categorical_crossentropy',
             optimizer='adadelta',
             metrics=['accuracy'])
         self.__model.load_weights(weightName)
