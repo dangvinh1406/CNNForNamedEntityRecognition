@@ -92,7 +92,7 @@ def test(model, folderTest, modelName, weightName):
     for batch_file in batch_data_files:
         X, Y = load_batch(batch_file)
         print(collections.Counter(Y))
-        print(model.test(X, Y))
+        print(model.test(X, Y, labels=[1, 2, 3, 4]))
         Y = CNNModel.convert_labels(Y, numClass=5)
         print(model.test_auto(X, Y))
 

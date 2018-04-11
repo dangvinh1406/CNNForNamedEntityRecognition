@@ -3,6 +3,8 @@ from __future__ import print_function
 import numpy
 
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import f1_score
+
 from keras import regularizers, layers, models, metrics
 from keras.models import model_from_json
 from keras import utils
@@ -36,11 +38,14 @@ class CNNModel:
     def test_auto(self, X, Y):
         return dict(zip(self.__model.metrics_names, self.__model.evaluate(X, Y)))
 
-    def test(self, X, Y_raw):
+    def test(self, X, Y_raw, labels):
         y = self.predict(X)
         y_raw = numpy.array([numpy.argmax(v) for v in y])
-        confusionMat = confusion_matrix(Y_raw, y_raw)
-        return confusionMat
+        result = {}
+        result["confusion_mat"] = confusion_matrix(Y_raw, y_raw)
+        result["f1_score_macro"] = f1_score(Y_raw, y_raw, average='macro', labels=labels)  
+        result["f1_score_micro"] = f1_score(Y_raw, y_raw, average='micro', labels=labels) 
+        return result
 
     def predict(self, X):
         return self.__model.predict(X)
