@@ -43,6 +43,7 @@ class CNNModel:
         y_raw = numpy.array([numpy.argmax(v) for v in y])
         result = {}
         result["confusion_mat"] = confusion_matrix(Y_raw, y_raw)
+        result["f1_score"] = f1_score(Y_raw, y_raw, average=None)
         result["f1_score_macro"] = f1_score(Y_raw, y_raw, average='macro', labels=labels)  
         result["f1_score_micro"] = f1_score(Y_raw, y_raw, average='micro', labels=labels) 
         return result
