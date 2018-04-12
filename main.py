@@ -9,6 +9,7 @@ import glob
 import argparse
 import shutil
 import collections
+import json
 
 from src.FeatureExtractor import W2VExtractor, HandcraftExtractor
 from src.CNNModel import CNNModel
@@ -91,10 +92,21 @@ def test(model, folderTest, modelName, weightName):
     batch_data_files = glob.glob(folderTest+"/*"+BATCH_FORMAT)
     for batch_file in batch_data_files:
         X, Y = load_batch(batch_file)
-        print(collections.Counter(Y))
-        print(model.test(X, Y, labels=[1, 2, 3, 4]))
-        Y = CNNModel.convert_labels(Y, numClass=5)
-        print(model.test_auto(X, Y))
+        statistic = collections.Counter(Y)
+        result = model.test(X, Y, labels=NE_LABEL.values())
+
+        print("Dataset statistic:\n", 
+            json.dumps({k:statistic[NE_LABEL[k]] for k in NE_LABEL.keys()}, indent=4))
+        print("Confusion matrix:\n", 
+            result["confusion_matrix"])
+        print("F1-score for each class:\n", 
+            json.dumps({k:result["f1_score"][NE_LABEL[k]] for k in NE_LABEL.keys()}, indent=4))
+        print("F1-score micro average: ", 
+            result["f1_score_micro"])
+        print("F1-score macro average: ", 
+            result["f1_score_macro"])
+        # Y = CNNModel.convert_labels(Y, numClass=5)
+        # print(model.test_auto(X, Y))
 
 if __name__ == '__main__':
     # python main.py -m train -e 1 -d dat/eng.train -o dat/ -w dat/vectors.bin 
