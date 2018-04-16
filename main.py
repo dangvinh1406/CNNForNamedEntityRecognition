@@ -27,13 +27,14 @@ DATA_FORMAT = {
 }
 
 NE_LABEL = {
-    "lookup": ["O", "ORG", "PER", "LOC", "MISC"],
     "O": 0, # 83.25%
     "ORG": 1, # 4.07%
     "PER": 2, # 6.13%
     "LOC": 3, # 4.08%
     "MISC": 4 # 2.47%
 }
+
+NE_LOOKUP = ["O", "ORG", "PER", "LOC", "MISC"]
 
 OMITED_DATA = ["\n", "-DOCSTART- -X- O O\n"]
 
@@ -207,7 +208,7 @@ if __name__ == '__main__':
             result = {}
             for i in range(len(words)):
                 if y[i] != NE_LABEL["O"]:
-                    result[words[i]] = NE_LABEL["lookup"][y[i]]
+                    result[words[i]] = NE_LOOKUP[y[i]]
             print(result)
             outFile.write(str(result)+"\n")
         inFile.close()
