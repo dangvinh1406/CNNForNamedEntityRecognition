@@ -13,6 +13,7 @@ import json
 
 from src.FeatureExtractor import W2VExtractor, HandcraftExtractor
 from src.CNNModel import CNNModel
+from src.Tokenizer import Tokenizer
 
 BATCH_FORMAT = ".batch"
 MODEL_FORMAT = ".json"
@@ -26,6 +27,7 @@ DATA_FORMAT = {
 }
 
 NE_LABEL = {
+    "lookup": ["O", "ORG", "PER", "LOC", "MISC"],
     "O": 0, # 83.25%
     "ORG": 1, # 4.07%
     "PER": 2, # 6.13%
@@ -110,11 +112,12 @@ def test(model, folderTest, modelName, weightName):
 
 if __name__ == '__main__':
     # python main.py -m train -e 1 -d dat/eng.train -o dat/ -w dat/vectors.bin 
-    # python main.py -m test -d dat/eng.testa -o dat/ -w dat/vectors.bin -c dat/w_0.h5 -a dat/model.json 
+    # python main.py -m test -d dat/eng.testa -o dat/ -w dat/vectors.bin -c dat/weight_9_a1.h5 -a dat/model.json 
+    # python main.py -m type -d dat/input.txt -o dat/ -w dat/vectors.bin -c dat/weight_9_a1.h5 -a dat/model.json 
 
     parser = argparse.ArgumentParser(description="main program to train or test cnn model")
     parser.add_argument("-m", "--mode", 
-        help="[train, test] train data file/test data file", required=True)
+        help="[train, test, type] train data file/test data file", required=True)
     parser.add_argument("-d", "--data", help="data file", required=True)
     parser.add_argument("-o", "--output", help="output prefix", required=False, default="")
     parser.add_argument("-s", "--batch_size", 
@@ -127,10 +130,10 @@ if __name__ == '__main__':
         help="word2vec pretrained model file", 
         required=True)
     parser.add_argument("-c", "--weight_file", 
-        help="use for mode 'test', cnn pretrained weight file", 
+        help="use for mode 'test' or 'type', cnn pretrained weight file", 
         required=False)
     parser.add_argument("-a", "--architech_file", 
-        help="use for mode 'test', cnn architech file", 
+        help="use for mode 'test' or 'type', cnn architech file", 
         required=False)
 
 
@@ -180,4 +183,34 @@ if __name__ == '__main__':
             model, os.path.join(outputFolder, "batches"),
             args.architech_file,
             args.weight_file)
-        
+    elif option == "type":
+        if not args.weight_file or not args.architech_file:
+            print("Error: Missing pretrained model")
+            sys.exit()
+        model.load(args.architech_file, args.weight_file)
+
+        inFile = open(rawDataFile, "r")
+        outFile = open(rawDataFile+".res", "w")
+        sentences = Tokenizer.tokenizeSentence(inFile.read())
+        for sentence in sentences:
+            words = Tokenizer.tokenizeWord(sentence)
+            
+            w2vFeatures = []
+            hcFeatures = []
+            for i in range(len(words)):
+                w2vFeatures.append(w2vEx.extract(words[i]))
+                hcFeatures.append(hcEx.extract(words[i], i==len(words)-1, i==0))
+
+            X = [numpy.array(w2vFeatures), numpy.array(hcFeatures)]
+            y = [numpy.argmax(v) for v in model.predict(X)]
+
+            result = {}
+            for i in range(len(words)):
+                if y[i] != NE_LABEL["O"]:
+                    result[words[i]] = NE_LABEL["lookup"][y[i]]
+            print(result)
+            outFile.write(str(result)+"\n")
+        inFile.close()
+        outFile.close()
+
+
